@@ -21,7 +21,13 @@ type Client struct {
 
 	defaultTitle string
 	defaultGroup string
-	defaultLevel MsgLevel
+}
+
+func NewClient(url, pushKeys string) *Client {
+	return &Client{
+		Url:     url,
+		PushKey: pushKeys,
+	}
 }
 
 func (c *Client) baseURL() string {
@@ -52,11 +58,47 @@ func (c *Client) send(r *RequestBody) error {
 	return nil
 }
 
-func NewClient(url, pushKeys string) *Client {
-	return &Client{
-		Url:     url,
-		PushKey: pushKeys,
+func (c *Client) Active(r *RequestBody) error {
+	r.Level = MsgLevelActive
+
+	err := c.RequestDefaultWrapper(r)
+	if err != nil {
+		return err
 	}
+
+	return c.send(r)
+}
+
+func (c *Client) RequestDefaultWrapper(r *RequestBody) error {
+	if r.Title == "" && c.defaultTitle != "" {
+		r.Title = c.defaultTitle
+	}
+
+	if r.Group == "" && c.defaultGroup != "" {
+		r.Group = c.defaultGroup
+	}
+
+	if r.Title == "" {
+		return MessageTitleEmptyError
+	}
+
+	return nil
+}
+
+func (c *Client) SetAPIUrl(url string) {
+	dc.Url = url
+}
+
+func (c *Client) SetPushKey(pushKey string) {
+	dc.PushKey = pushKey
+}
+
+func (c *Client) SetDefaultTitle(title string) {
+	dc.defaultTitle = title
+}
+
+func (c *Client) SetDefaultGroup(group string) {
+	dc.defaultGroup = group
 }
 
 var dc *Client = &Client{}
@@ -66,7 +108,7 @@ var dc *Client = &Client{}
 //	@Description: Set url for default client
 //	@param url - bark api url
 func SetAPIUrl(url string) {
-	dc.Url = url
+	dc.SetAPIUrl(url)
 }
 
 // SetPushKey
@@ -74,18 +116,17 @@ func SetAPIUrl(url string) {
 //	@Description: Set push key for default client
 //	@param pushKey - bark api push key
 func SetPushKey(pushKey string) {
-	dc.PushKey = pushKey
+	dc.SetPushKey(pushKey)
 }
 
 func SetDefaultTitle(title string) {
-	dc.defaultTitle = title
+	dc.SetDefaultTitle(title)
 }
 
 func SetDefaultGroup(group string) {
-	dc.defaultGroup = group
+	dc.SetDefaultGroup(group)
 }
 
-func Active(r *RequestBody) {
-	r.Level = MsgLevelActive
-
+func Active(r *RequestBody) error {
+	return dc.Active(r)
 }
